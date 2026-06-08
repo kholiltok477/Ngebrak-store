@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover" />
+    <title>Ngebrak Store - Login</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="login-root" role="main">
+      <div class="login-container">
+        <div class="branding">
+          <div class="inner">
+            <img src="/logo.png" alt="logo" />
+            <h2>Selamat Datang di Sistem Inventory Ngebrak Store</h2>
+            <p>Kelola stok, penjualan, dan laporan toko dengan lebih mudah dan efisien.</p>
+          </div>
+        </div>
+
+        <div class="card-wrap">
+          <div class="login-card" aria-labelledby="loginTitle">
+            <h3 id="loginTitle">Login</h3>
+            <p class="sub">Masuk ke akun Anda</p>
+            <form id="loginForm">
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input id="username" name="username" type="text" placeholder="username" autocomplete="username" />
+              </div>
+              <div class="form-group">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" placeholder="password" autocomplete="current-password" />
+              </div>
+              <div class="form-row">
+                <label class="remember"><input type="checkbox" name="remember" /> Ingat Saya</label>
+                <div class="forgot"><a href="#">Lupa Password?</a></div>
+              </div>
+              <button type="submit" class="btn-login">Masuk</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loginToast" class="login-toast" aria-live="polite"></div>
+    <script src="/login.js"></script>
+  </body>
+  </html>

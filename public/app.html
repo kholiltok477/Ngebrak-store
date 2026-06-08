@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover" />
+    <title>Ngebrak Store - Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="app-body">
+    <div class="app-shell">
+      <aside class="app-sidebar" id="sidebar">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-icon">N</div>
+          <div>
+            <div class="sidebar-brand-title">Ngebrak Store</div>
+            <div class="sidebar-brand-subtitle">Inventory & POS</div>
+          </div>
+        </div>
+        <nav class="sidebar-nav" id="sidebarMenu"></nav>
+        <div class="sidebar-profile" id="sidebarProfile">
+          <div>
+            <div class="sidebar-profile-name" id="profileName"></div>
+            <div class="sidebar-profile-role" id="profileRole"></div>
+          </div>
+          <button id="logoutButton" class="sidebar-logout">Logout</button>
+        </div>
+      </aside>
+
+      <div class="app-content-wrapper">
+        <header class="app-header">
+          <div class="header-left">
+            <div class="header-store-name">Ngebrak Store</div>
+          </div>
+          <div class="header-center">
+            <input id="searchInput" type="search" placeholder="Cari global..." />
+          </div>
+          <div class="header-right">
+            <button id="modeToggle" class="header-icon" aria-label="Toggle mode">☾</button>
+            <button class="header-icon" aria-label="Notifikasi">🔔<span class="notification-badge" id="notificationBadge">3</span></button>
+            <div class="header-user" id="headerUser"></div>
+          </div>
+        </header>
+
+        <main class="app-main" id="mainContent">
+          <section class="page-section" id="dashboardSection">
+            <div class="section-header">
+              <div>
+                <h1>Dashboard</h1>
+                <p class="section-subtitle">Ringkasan kinerja toko dan aktivitas terbaru.</p>
+              </div>
+            </div>
+            <div class="metrics-grid" id="dashboardMetrics"></div>
+            <div class="cards-grid">
+              <div class="card card-wide">
+                <div class="card-title">Grafik Penjualan Bulanan</div>
+                <div class="chart-placeholder" id="salesChart">Loading...</div>
+              </div>
+              <div class="card card-wide">
+                <div class="card-title">Grafik Pembelian Bulanan</div>
+                <div class="chart-placeholder" id="purchaseChart">Loading...</div>
+              </div>
+            </div>
+            <div class="cards-grid">
+              <div class="card">
+                <div class="card-title">Produk Terlaris</div>
+                <ul class="simple-list" id="topProducts"></ul>
+              </div>
+              <div class="card">
+                <div class="card-title">Produk Hampir Habis</div>
+                <ul class="simple-list" id="lowStockItems"></ul>
+              </div>
+              <div class="card card-long">
+                <div class="card-title">Aktivitas Terbaru</div>
+                <ul class="activity-list" id="activityList"></ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="page-section hidden" id="posSection">
+            <div class="section-header">
+              <div>
+                <h1>POS Penjualan</h1>
+                <p class="section-subtitle">Kelola transaksi kasir dengan cepat dan akurat.</p>
+              </div>
+            </div>
+            <div class="pos-grid">
+              <div class="pos-products-panel">
+                <div class="card card-section">
+                  <div class="card-title">Produk</div>
+                  <div class="pos-filters">
+                    <select id="posCategoryFilter"><option value="">Semua Kategori</option></select>
+                    <select id="posSupplierFilter"><option value="">Semua Supplier</option></select>
+                  </div>
+                  <input id="posBarcodeInput" type="text" placeholder="Scan barcode / masukkan kode produk" class="pos-barcode-scan" autocomplete="off" />
+                  <input id="posSearchInput" type="search" placeholder="Cari produk..." class="pos-search" />
+                  <div class="pos-product-grid" id="posProductGrid"></div>
+                </div>
+              </div>
+              <div class="pos-cart-panel">
+                <div class="card card-section">
+                  <div class="card-title">Keranjang</div>
+                  <div id="cartItems" class="cart-items"></div>
+                  <div class="cart-summary">
+                    <div class="cart-row"><span>Total Item</span><span id="cartTotalItems">0</span></div>
+                    <div class="cart-row"><span>Subtotal</span><span id="cartSubtotal">Rp 0</span></div>
+                    <div class="cart-row"><span>Diskon</span><span><input id="cartDiscount" type="number" min="0" value="0" />%</span></div>
+                    <div class="cart-row"><span>Pajak</span><span><input id="cartTax" type="number" min="0" value="10" />%</span></div>
+                    <div class="cart-row total"><span>Grand Total</span><span id="cartGrandTotal">Rp 0</span></div>
+                  </div>
+                  <div class="cart-actions">
+                    <select id="paymentMethod"><option value="Tunai">Tunai</option><option value="QRIS">QRIS</option><option value="Transfer">Transfer</option><option value="Debit">Debit</option><option value="Kredit">Kredit</option><option value="E-Wallet">E-Wallet</option></select>
+                    <button id="checkoutButton" class="primary-button">Bayar Sekarang</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="page-section hidden" id="productsSection">
+            <div class="section-header">
+              <div>
+                <h1>Produk</h1>
+                <p class="section-subtitle">Kelola daftar produk, stok, harga dan supplier.</p>
+              </div>
+              <button id="openProductModal" class="secondary-button">Tambah Produk</button>
+            </div>
+            <div class="card card-section">
+              <div class="table-toolbar">
+                <input id="productSearch" type="search" placeholder="Cari produk..." />
+                <select id="productCategoryFilter"><option value="">Semua Kategori</option></select>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table" id="productTable">
+                  <thead>
+                    <tr><th>Barcode</th><th>Nama</th><th>Kategori</th><th>Supplier</th><th>Harga Jual</th><th>Stok</th><th>Aksi</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="page-section hidden" id="categoriesSection">
+            <div class="section-header">
+              <div>
+                <h1>Kategori</h1>
+                <p class="section-subtitle">Manajemen kategori produk.</p>
+              </div>
+              <button id="openCategoryModal" class="secondary-button">Tambah Kategori</button>
+            </div>
+            <div class="card card-section">
+              <div class="table-responsive">
+                <table class="data-table" id="categoryTable">
+                  <thead>
+                    <tr><th>Nama</th><th>Deskripsi</th><th>Aksi</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="page-section hidden" id="suppliersSection">
+            <div class="section-header">
+              <div>
+                <h1>Supplier</h1>
+                <p class="section-subtitle">Kelola pemasok dan data kontak supplier.</p>
+              </div>
+              <button id="openSupplierModal" class="secondary-button">Tambah Supplier</button>
+            </div>
+            <div class="card card-section">
+              <div class="table-responsive">
+                <table class="data-table" id="supplierTable">
+                  <thead>
+                    <tr><th>Nama</th><th>Telepon</th><th>Email</th><th>Alamat</th><th>Aksi</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="page-section hidden" id="customersSection">
+            <div class="section-header">
+              <div>
+                <h1>Pelanggan</h1>
+                <p class="section-subtitle">Kelola data pelanggan dan member point.</p>
+              </div>
+              <button id="openCustomerModal" class="secondary-button">Tambah Pelanggan</button>
+            </div>
+            <div class="card card-section">
+              <div class="table-responsive">
+                <table class="data-table" id="customerTable">
+                  <thead>
+                    <tr><th>Nama</th><th>Telepon</th><th>Email</th><th>Alamat</th><th>Member Point</th><th>Aksi</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="page-section hidden" id="settingsSection">
+            <div class="section-header">
+              <div>
+                <h1>Pengaturan</h1>
+                <p class="section-subtitle">Profil toko, tema, dan pengaturan sistem.</p>
+              </div>
+            </div>
+            <div class="card card-section">
+              <div class="setting-grid">
+                <div class="setting-item">
+                  <label>Nama Toko</label>
+                  <input type="text" id="storeNameInput" />
+                </div>
+                <div class="setting-item">
+                  <label>Logo Toko</label>
+                  <input type="text" id="storeLogoInput" placeholder="URL logo" />
+                </div>
+                <div class="setting-item">
+                  <label>Pajak (%)</label>
+                  <input type="number" id="storeTaxInput" min="0" value="10" />
+                </div>
+                <div class="setting-item">
+                  <label>Printer Struk</label>
+                  <input type="text" id="receiptPrinterInput" placeholder="Nama printer" />
+                </div>
+              </div>
+              <div class="card-actions">
+                <button id="saveSettingsButton" class="primary-button">Simpan Pengaturan</button>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay hidden"></div>
+    <div id="modalDialog" class="modal-dialog hidden"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,2 @@
+Edit history for login layout adjustments
+- 2026-05-30: Reduced vertical padding, set h-screen and overflow-hidden, limited login card max height.
