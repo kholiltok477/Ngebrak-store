@@ -838,52 +838,50 @@ app.post('/api/stock-opname', async (req, res) => {
 
   if (!items.length) return sendError(res, 'Item stok opname wajib diisi.');
 
-  const dbRun = (sql, params = []) => runAsync(sql, params);
-
   try {
-    await dbRun('BEGIN TRANSACTION');
-
-    const insertSession = await dbRun(
-      `INSERT INTO inventory_count_sessions (counted_at, staff_name, note) VALUES (?, ?, ?)`,
-      [new Date().toISOString().slice(0, 19).replace('T', ' '), staffName, note || null]
-    );
-
-    const sessionId = insertSession.lastID;
-
+    // Validasi & kumpulkan data terlebih dahulu
+    const validatedItems = [];
     for (const it of items) {
       const productId = Number(it.productId);
-      const systemStock = ensureNumber(it.systemStock);
       const countedStock = ensureNumber(it.countedStock);
-      const difference = countedStock - systemStock;
       const itemNote = (it.note || '').trim();
 
       const product = await getAsync('SELECT stock FROM products WHERE id = ?', [productId]);
-      if (!product) throw new Error(`Produk tidak ditemukan: ${productId}`);
+      if (!product) return sendError(res, `Produk tidak ditemukan: ${productId}`);
 
-      // gunakan stock DB sebagai sumber kebenaran untuk update
       const actualSystemStock = ensureNumber(product.stock);
       const actualDifference = countedStock - actualSystemStock;
-
-      await dbRun(
-        `INSERT INTO inventory_count_items (session_id, product_id, system_stock, counted_stock, difference, note)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [sessionId, productId, actualSystemStock, countedStock, actualDifference, itemNote || null]
-      );
-
-      await dbRun('UPDATE products SET stock = stock + ? WHERE id = ?', [actualDifference, productId]);
-
-      await dbRun(
-        `INSERT INTO inventory_logs (type, product_id, quantity, note)
-         VALUES (?, ?, ?, ?)`,
-        ['stock_opname', productId, actualDifference, `Stok opname (${staffName}): ${countedStock}`]
-      );
+      validatedItems.push({ productId, actualSystemStock, countedStock, actualDifference, itemNote });
     }
 
-    await dbRun('COMMIT');
+    // Insert session dulu untuk dapat sessionId
+    const insertSession = await runAsync(
+      `INSERT INTO inventory_count_sessions (counted_at, staff_name, note) VALUES (?, ?, ?)`,
+      [new Date().toISOString().slice(0, 19).replace('T', ' '), staffName, note || null]
+    );
+    const sessionId = insertSession.lastID;
+
+    // Batch semua write operations
+    const batchStatements = [];
+    for (const vi of validatedItems) {
+      batchStatements.push({
+        sql: `INSERT INTO inventory_count_items (session_id, product_id, system_stock, counted_stock, difference, note) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [sessionId, vi.productId, vi.actualSystemStock, vi.countedStock, vi.actualDifference, vi.itemNote || null]
+      });
+      batchStatements.push({
+        sql: 'UPDATE products SET stock = stock + ? WHERE id = ?',
+        args: [vi.actualDifference, vi.productId]
+      });
+      batchStatements.push({
+        sql: `INSERT INTO inventory_logs (type, product_id, quantity, note) VALUES (?, ?, ?, ?)`,
+        args: ['stock_opname', vi.productId, vi.actualDifference, `Stok opname (${staffName}): ${vi.countedStock}`]
+      });
+    }
+
+    await db.batch(batchStatements, 'write');
     return res.json({ success: true, message: 'Stok opname berhasil disimpan.' });
   } catch (e) {
     console.error(e);
-    try { await dbRun('ROLLBACK'); } catch {}
     return sendError(res, e?.message ? `Gagal menyimpan stok opname: ${e.message}` : 'Gagal menyimpan stok opname.', 500);
   }
 });
