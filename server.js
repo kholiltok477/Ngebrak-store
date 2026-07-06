@@ -1728,20 +1728,25 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-ensureSchemaAndSeed()
-  .then(() => {
-    if (!process.env.VERCEL) {
-      app.listen(PORT, () => {
-        console.log(`Server berjalan di http://localhost:${PORT}`);
-      });
-    }
-  })
-  .catch((err) => {
-    console.error('Gagal inisialisasi database:', err);
-    if (!process.env.VERCEL) {
-      process.exit(1);
-    }
+// Simpan promise inisialisasi DB agar bisa di-await oleh setiap request
+const dbReady = ensureSchemaAndSeed().catch((err) => {
+  console.error('Gagal inisialisasi database:', err);
+});
+
+// Middleware: Pastikan DB sudah siap sebelum setiap request API diproses
+// (Penting untuk Vercel serverless / cold start)
+app.use('/api', async (req, res, next) => {
+  await dbReady;
+  next();
+});
+
+if (!process.env.VERCEL) {
+  dbReady.then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server berjalan di http://localhost:${PORT}`);
+    });
   });
+}
 
 module.exports = app;
 
