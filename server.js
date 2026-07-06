@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { createClient } = require('@libsql/client');
+const { createClient } = require('@libsql/client/http');
 const PDFDocument = require('pdfkit');
 
 const app = express();
@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const db = createClient({
-  url: process.env.TURSO_DATABASE_URL || 'file:./db.sqlite',
+  url: (process.env.TURSO_DATABASE_URL || 'file:./db.sqlite').replace(/^libsql:/, 'https:'),
   authToken: process.env.TURSO_AUTH_TOKEN
 });
 
