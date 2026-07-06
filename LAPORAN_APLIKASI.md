@@ -30,7 +30,9 @@ Aplikasi dibangun menggunakan:
    - Endpoint `POST /api/login`
 2. Dashboard
    - Halaman `public/app.html`
-   - Menampilkan ringkasan produk, penjualan, stok rendah, aktivitas
+   - Menampilkan metrik ringkasan konsolidasi: Penjualan Hari Ini, Pendapatan Kotor, Modal, dan Keuntungan Bersih dalam satu tampilan ringkas.
+   - Menampilkan grafik tren gabungan (Pendapatan Kotor, Modal, Keuntungan Bersih) beserta nilai nominal masing-masing titik data.
+   - Menampilkan daftar produk dengan stok rendah.
 3. Manajemen Produk
    - CRUD produk melalui API dan UI admin
 4. Manajemen Kategori

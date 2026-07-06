@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover" />
     <title>Ngebrak Store - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="app-body">
@@ -35,43 +38,143 @@
             <input id="searchInput" type="search" placeholder="Cari global..." />
           </div>
           <div class="header-right">
-            <button id="modeToggle" class="header-icon" aria-label="Toggle mode">☾</button>
-            <button class="header-icon" aria-label="Notifikasi">🔔<span class="notification-badge" id="notificationBadge">3</span></button>
             <div class="header-user" id="headerUser"></div>
           </div>
         </header>
 
         <main class="app-main" id="mainContent">
-          <section class="page-section" id="dashboardSection">
+          <section class="page-section hidden" id="dashboardSection">
             <div class="section-header">
               <div>
                 <h1>Dashboard</h1>
-                <p class="section-subtitle">Ringkasan kinerja toko dan aktivitas terbaru.</p>
+                <p class="section-subtitle">Ringkasan kinerja toko hari ini.</p>
               </div>
+            </div>
+            <div class="card dashboard-finance-card" style="margin-bottom:12px;">
+              <div class="card-title">Pendapatan Hari Ini</div>
+              <div class="finance-metrics-row" id="financeMetrics"></div>
+              <div class="chart-placeholder" id="combinedChart">Loading...</div>
+              <div class="chart-legend" id="chartLegend"></div>
             </div>
             <div class="metrics-grid" id="dashboardMetrics"></div>
-            <div class="cards-grid">
-              <div class="card card-wide">
-                <div class="card-title">Grafik Penjualan Bulanan</div>
-                <div class="chart-placeholder" id="salesChart">Loading...</div>
-              </div>
-              <div class="card card-wide">
-                <div class="card-title">Grafik Pembelian Bulanan</div>
-                <div class="chart-placeholder" id="purchaseChart">Loading...</div>
-              </div>
-            </div>
-            <div class="cards-grid">
-              <div class="card">
-                <div class="card-title">Produk Terlaris</div>
-                <ul class="simple-list" id="topProducts"></ul>
-              </div>
-              <div class="card">
+            <div class="cards-grid" style="margin-top:12px;">
+              <div class="card card-long">
                 <div class="card-title">Produk Hampir Habis</div>
                 <ul class="simple-list" id="lowStockItems"></ul>
               </div>
-              <div class="card card-long">
-                <div class="card-title">Aktivitas Terbaru</div>
-                <ul class="activity-list" id="activityList"></ul>
+            </div>
+          </section>
+
+          <section class="page-section hidden" id="stockOpnameSection">
+            <div class="section-header">
+              <div>
+                <h1>Stok Opname</h1>
+                <p class="section-subtitle">Penyesuaian stok fisik dan sistem. Input stok terhitung, lalu simpan.</p>
+              </div>
+            </div>
+
+            <div class="card card-section">
+              <div class="table-toolbar">
+                <input id="stockOpnameNote" type="text" placeholder="Catatan opname (opsional)" />
+                <button id="startStockOpnameButton" class="secondary-button">Mulai Opname</button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="stockOpnameTable">
+                  <thead>
+                    <tr>
+                      <th>Kode</th>
+                      <th>Nama</th>
+                      <th>Stok Sistem</th>
+                      <th>Stok Terhitung</th>
+                      <th>Selisih</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+
+              <div class="cart-actions" style="justify-content:flex-end; margin-top:14px;">
+                <button id="saveStockOpnameButton" class="primary-button">Simpan Stok Opname</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="page-section hidden" id="stockSection">
+            <div class="section-header">
+              <div>
+                <h1>Manajemen Stok</h1>
+                <p class="section-subtitle">Tampilkan stok produk, catat barang masuk, dan lihat log inventory.</p>
+              </div>
+            </div>
+
+            <div class="card card-section">
+              <div class="table-toolbar">
+                <h2 style="margin:0; font-size:16px;">Daftar Barang Masuk</h2>
+                <div class="table-toolbar" style="gap:10px; padding:0; margin:0; background:transparent;">
+                  <button id="refreshIncomingButton" class="secondary-button" style="white-space:nowrap;">Refresh</button>
+                </div>
+              </div>
+
+              <div class="table-responsive" style="margin-top:12px;">
+                <table class="data-table" id="incomingGoodsTable">
+                  <thead>
+                    <tr>
+                      <th>Waktu</th>
+                      <th>Produk</th>
+                      <th>Supplier</th>
+                      <th>Qty</th>
+                      <th>Catatan</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+
+
+            <div class="card card-section">
+              <div class="section-header" style="margin-bottom:10px;">
+                <div>
+                  <h1 style="font-size:16px;">Log Inventory</h1>
+                  <p class="section-subtitle">Riwayat perubahan stok terbaru.</p>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table" id="inventoryLogsTable">
+                  <thead>
+                    <tr>
+                      <th>Waktu</th>
+                      <th>Tipe</th>
+                      <th>Produk</th>
+                      <th>Qty</th>
+                      <th>Catatan</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="cart-actions" style="justify-content:flex-end; margin-top:14px;">
+                <button id="refreshInventoryLogsButton" class="secondary-button">Refresh Log</button>
+              </div>
+            </div>
+
+            <div class="card card-section">
+              <div class="table-responsive">
+                <table class="data-table" id="stockTable">
+                  <thead>
+                    <tr>
+                      <th>Kode</th>
+                      <th>Nama</th>
+                      <th>Kategori</th>
+                      <th>Supplier</th>
+                      <th>Harga Jual</th>
+                      <th>Stok</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
               </div>
             </div>
           </section>
@@ -104,11 +207,19 @@
                     <div class="cart-row"><span>Total Item</span><span id="cartTotalItems">0</span></div>
                     <div class="cart-row"><span>Subtotal</span><span id="cartSubtotal">Rp 0</span></div>
                     <div class="cart-row"><span>Diskon</span><span><input id="cartDiscount" type="number" min="0" value="0" />%</span></div>
-                    <div class="cart-row"><span>Pajak</span><span><input id="cartTax" type="number" min="0" value="10" />%</span></div>
+                    <div class="cart-row"><span>Pajak</span><span><input id="cartTax" type="number" min="0" value="0" />%</span></div>
                     <div class="cart-row total"><span>Grand Total</span><span id="cartGrandTotal">Rp 0</span></div>
                   </div>
+
                   <div class="cart-actions">
-                    <select id="paymentMethod"><option value="Tunai">Tunai</option><option value="QRIS">QRIS</option><option value="Transfer">Transfer</option><option value="Debit">Debit</option><option value="Kredit">Kredit</option><option value="E-Wallet">E-Wallet</option></select>
+                    <select id="paymentMethod">
+                      <option value="Tunai">Tunai</option>
+                      <option value="QRIS">QRIS</option>
+                      <option value="Transfer">Transfer</option>
+                      <option value="Debit">Debit</option>
+                      <option value="Kredit">Kredit</option>
+                      <option value="E-Wallet">E-Wallet</option>
+                    </select>
                     <button id="checkoutButton" class="primary-button">Bayar Sekarang</button>
                   </div>
                 </div>
@@ -129,10 +240,29 @@
                 <input id="productSearch" type="search" placeholder="Cari produk..." />
                 <select id="productCategoryFilter"><option value="">Semua Kategori</option></select>
               </div>
+              <div class="table-toolbar">
+                <button id="bulkDeleteSelectedProductsButton" class="action-button delete" disabled>Hapus Produk Terpilih</button>
+              </div>
               <div class="table-responsive">
                 <table class="data-table" id="productTable">
                   <thead>
-                    <tr><th>Barcode</th><th>Nama</th><th>Kategori</th><th>Supplier</th><th>Harga Jual</th><th>Stok</th><th>Aksi</th></tr>
+                    <tr>
+                      <th>Kode</th>
+                      <th>Nama Produk</th>
+                      <th>Modal</th>
+                      <th>Harga Jual</th>
+                      <th>Untung Bersih</th>
+                      <th>Satuan</th>
+                      <th>Qty</th>
+                      <th>Status Stok</th>
+                      <th>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                          <span>Pilih</span>
+                          <input id="bulkDeleteSelectAllProductsCheckbox" type="checkbox" />
+                        </div>
+                      </th>
+                      <th>Aksi</th>
+                    </tr>
                   </thead>
                   <tbody></tbody>
                 </table>
@@ -200,6 +330,42 @@
             </div>
           </section>
 
+          <section class="page-section hidden" id="laporanSection">
+            <div class="section-header">
+              <div>
+                <h1>Laporan</h1>
+                <p class="section-subtitle">Generate laporan rekapan penjualan berdasarkan rentang tanggal.</p>
+              </div>
+            </div>
+
+            <div class="card card-section laporan-card">
+              <div class="laporan-form">
+                <div class="laporan-form-row">
+                  <div class="laporan-field">
+                    <label for="laporanStartDate">Tanggal Mulai</label>
+                    <input type="date" id="laporanStartDate" />
+                  </div>
+                  <div class="laporan-field">
+                    <label for="laporanEndDate">Tanggal Akhir</label>
+                    <input type="date" id="laporanEndDate" />
+                  </div>
+                </div>
+                <div class="laporan-preset-row">
+                  <span class="laporan-preset-label">Cepat:</span>
+                  <button class="laporan-preset-btn" data-preset="today">Hari Ini</button>
+                  <button class="laporan-preset-btn" data-preset="thisWeek">Minggu Ini</button>
+                  <button class="laporan-preset-btn" data-preset="thisMonth">Bulan Ini</button>
+                  <button class="laporan-preset-btn" data-preset="lastMonth">Bulan Lalu</button>
+                  <button class="laporan-preset-btn" data-preset="allTime">Semua</button>
+                </div>
+                <div class="laporan-actions">
+                  <button id="previewLaporanBtn" class="primary-button" style="background: linear-gradient(135deg, #2980B9, #1F4E79);">👁️ Preview Laporan</button>
+                  <button id="downloadLaporanBtn" class="primary-button" style="background: linear-gradient(135deg, #27AE60, #1E8449);">📄 Download PDF</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section class="page-section hidden" id="settingsSection">
             <div class="section-header">
               <div>
@@ -219,7 +385,7 @@
                 </div>
                 <div class="setting-item">
                   <label>Pajak (%)</label>
-                  <input type="number" id="storeTaxInput" min="0" value="10" />
+                  <input type="number" id="storeTaxInput" min="0" value="0" />
                 </div>
                 <div class="setting-item">
                   <label>Printer Struk</label>
@@ -238,6 +404,36 @@
     <div id="modalOverlay" class="modal-overlay hidden"></div>
     <div id="modalDialog" class="modal-dialog hidden"></div>
 
+    <!-- PDF Viewer Modal -->
+    <div id="pdfViewerOverlay" class="pdf-viewer-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pdfViewerTitle">
+      <div class="pdf-viewer-container">
+        <div class="pdf-viewer-header">
+          <div class="pdf-viewer-title-group">
+            <span id="pdfViewerIcon" class="pdf-viewer-icon">🧾</span>
+            <h2 id="pdfViewerTitle" class="pdf-viewer-title">Struk Transaksi</h2>
+          </div>
+          <div class="pdf-viewer-actions">
+            <a id="pdfDownloadBtn" class="pdf-action-btn pdf-download-btn" download>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PDF
+            </a>
+            <button id="pdfCloseBtn" class="pdf-action-btn pdf-close-btn" aria-label="Tutup">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Tutup
+            </button>
+          </div>
+        </div>
+        <div class="pdf-viewer-body">
+          <div id="pdfLoadingSpinner" class="pdf-loading-spinner">
+            <div class="pdf-spinner-ring"></div>
+            <span>Memuat struk PDF...</span>
+          </div>
+          <iframe id="pdfViewerFrame" class="pdf-viewer-frame hidden" title="Struk PDF"></iframe>
+        </div>
+      </div>
+    </div>
+
     <script src="app.js"></script>
   </body>
 </html>
+

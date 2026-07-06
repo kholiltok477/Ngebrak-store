@@ -1,17 +1,9 @@
-# TODO - CSS gak tampil sama sekali
+# TODO - Fitur Struk PDF POS
 
-## Step 1: Investigasi
-- [x] Cek `frontend/public/styles.css` (terlihat campuran/duplikasi dan berpotensi invalid)
-- [x] Cek link CSS di `frontend/public/index.html` dan `frontend/public/app.html`
-- [x] Cek ketersediaan route `GET /styles.css` di server
-
-## Step 2: Perbaikan CSS
-- [x] Bersihkan `frontend/public/styles.css` menjadi CSS murni (hapus bagian HTML/JS/yang tidak valid)
-- [x] Pastikan file berakhir normal dan hanya berisi selector CSS
-
-
-## Step 3: Verifikasi
-- [x] Jalankan server
-- [x] Buka halaman dan cek Network/Console untuk status `/styles.css` dan parsing errors
-
+- [ ] (Sebelum implement) Tambah tabel/kolom untuk menyimpan header receipt per checkout (id receipt) + item receipt.
+- [ ] Buat endpoint baru `POST /api/checkout` (sekali request dari POS) yang memproses seluruh isi cart, update stok, simpan ke receipt header & receipt items, dan mengembalikan `receiptId`.
+- [ ] Buat endpoint `GET /api/receipts/:id/pdf` yang menghasilkan PDF struk dan mengirim sebagai download.
+- [ ] Update front-end POS: ganti `handleCheckout()` agar memanggil `/api/checkout` dan kemudian membuka/download PDF.
+- [ ] (Opsional) Tambah tombol “Print PDF / Cetak Struk” atau langsung auto-open setelah checkout.
+- [ ] Uji end-to-end: login kasir -> tambah beberapa item -> checkout -> download PDF.
 
