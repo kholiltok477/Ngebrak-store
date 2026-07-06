@@ -861,24 +861,19 @@ app.post('/api/stock-opname', async (req, res) => {
     );
     const sessionId = insertSession.lastID;
 
-    // Batch semua write operations
-    const batchStatements = [];
+    // Eksekusi write operations secara sequential (kompatibel dengan Turso HTTP)
     for (const vi of validatedItems) {
-      batchStatements.push({
-        sql: `INSERT INTO inventory_count_items (session_id, product_id, system_stock, counted_stock, difference, note) VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [sessionId, vi.productId, vi.actualSystemStock, vi.countedStock, vi.actualDifference, vi.itemNote || null]
-      });
-      batchStatements.push({
-        sql: 'UPDATE products SET stock = stock + ? WHERE id = ?',
-        args: [vi.actualDifference, vi.productId]
-      });
-      batchStatements.push({
-        sql: `INSERT INTO inventory_logs (type, product_id, quantity, note) VALUES (?, ?, ?, ?)`,
-        args: ['stock_opname', vi.productId, vi.actualDifference, `Stok opname (${staffName}): ${vi.countedStock}`]
-      });
+      await runAsync(
+        `INSERT INTO inventory_count_items (session_id, product_id, system_stock, counted_stock, difference, note) VALUES (?, ?, ?, ?, ?, ?)`,
+        [sessionId, vi.productId, vi.actualSystemStock, vi.countedStock, vi.actualDifference, vi.itemNote || null]
+      );
+      await runAsync('UPDATE products SET stock = stock + ? WHERE id = ?', [vi.actualDifference, vi.productId]);
+      await runAsync(
+        `INSERT INTO inventory_logs (type, product_id, quantity, note) VALUES (?, ?, ?, ?)`,
+        ['stock_opname', vi.productId, vi.actualDifference, `Stok opname (${staffName}): ${vi.countedStock}`]
+      );
     }
 
-    await db.batch(batchStatements, 'write');
     return res.json({ success: true, message: 'Stok opname berhasil disimpan.' });
   } catch (e) {
     console.error(e);
@@ -1003,28 +998,22 @@ app.post('/api/checkout', async (req, res) => {
     );
     const receiptId = insertReceipt.lastID;
 
-    // 2. Batch semua write operations (update stok, insert log, insert items & transaksi)
-    const batchStatements = [];
+    // 2. Eksekusi write operations secara sequential (kompatibel dengan Turso HTTP)
     for (const ri of receiptItems) {
-      batchStatements.push({
-        sql: 'UPDATE products SET stock = stock - ? WHERE id = ?',
-        args: [ri.quantity, ri.productId]
-      });
-      batchStatements.push({
-        sql: `INSERT INTO inventory_logs (type, product_id, quantity, note) VALUES (?, ?, ?, ?)`,
-        args: ['sell', ri.productId, ri.quantity, `Penjualan x${ri.quantity} (metode: ${paymentMethod})`]
-      });
-      batchStatements.push({
-        sql: `INSERT INTO sales_receipt_items (receipt_id, product_id, quantity, price, total_price, product_code, product_name, unit, purchase_price, sale_price, profit_per_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [receiptId, ri.productId, ri.quantity, ri.price, ri.totalPrice, ri.product_code, ri.product_name, ri.unit, ri.purchase_price, ri.sale_price, ri.profit_per_unit]
-      });
-      batchStatements.push({
-        sql: `INSERT INTO sales_transactions (date, cashier_name, product_id, quantity, price, total_price, payment_method, product_code, product_name, unit, purchase_price, sale_price, profit_per_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [today, ri.cashierName, ri.productId, ri.quantity, ri.price, ri.totalPrice, ri.paymentMethod, ri.product_code, ri.product_name, ri.unit, ri.purchase_price, ri.sale_price, ri.profit_per_unit]
-      });
+      await runAsync('UPDATE products SET stock = stock - ? WHERE id = ?', [ri.quantity, ri.productId]);
+      await runAsync(
+        `INSERT INTO inventory_logs (type, product_id, quantity, note) VALUES (?, ?, ?, ?)`,
+        ['sell', ri.productId, ri.quantity, `Penjualan x${ri.quantity} (metode: ${paymentMethod})`]
+      );
+      await runAsync(
+        `INSERT INTO sales_receipt_items (receipt_id, product_id, quantity, price, total_price, product_code, product_name, unit, purchase_price, sale_price, profit_per_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [receiptId, ri.productId, ri.quantity, ri.price, ri.totalPrice, ri.product_code, ri.product_name, ri.unit, ri.purchase_price, ri.sale_price, ri.profit_per_unit]
+      );
+      await runAsync(
+        `INSERT INTO sales_transactions (date, cashier_name, product_id, quantity, price, total_price, payment_method, product_code, product_name, unit, purchase_price, sale_price, profit_per_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [today, ri.cashierName, ri.productId, ri.quantity, ri.price, ri.totalPrice, ri.paymentMethod, ri.product_code, ri.product_name, ri.unit, ri.purchase_price, ri.sale_price, ri.profit_per_unit]
+      );
     }
-
-    await db.batch(batchStatements, 'write');
 
     return res.json({ success: true, receiptId, message: 'Checkout tersimpan.' });
   } catch (e) {
