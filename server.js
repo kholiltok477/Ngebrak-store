@@ -954,141 +954,84 @@ app.post('/api/checkout', async (req, res) => {
 
     if (!cart.length) return sendError(res, 'Cart wajib diisi.');
 
-    // Validasi & hitung semua baris terlebih dahulu
     const receiptItems = [];
     let subtotal = 0;
     let itemsCount = 0;
 
-    await runAsync('BEGIN TRANSACTION');
+    // Validasi stok & hitung item terlebih dahulu (baca dulu, baru tulis)
+    for (const it of cart) {
+      const productId = Number(it.productId);
+      const quantity = ensureNumber(it.quantity);
+      if (!productId || quantity <= 0) return sendError(res, 'Item cart tidak valid.');
 
-    try {
-      for (const it of cart) {
-        const productId = Number(it.productId);
-        const quantity = ensureNumber(it.quantity);
-        if (!productId || quantity <= 0) throw new Error('Item cart tidak valid.');
-
-        const product = await getAsync(
-          'SELECT stock, sale_price, purchase_price, code, name, unit FROM products WHERE id = ?',
-          [productId]
-        );
-        if (!product) throw new Error(`Produk tidak ditemukan: ${productId}`);
-        if (ensureNumber(product.stock) < quantity) throw new Error(`Stok tidak cukup untuk ${product.name}`);
-
-        const price = ensureNumber(product.sale_price);
-        const totalPrice = price * quantity;
-        const purchasePrice = ensureNumber(product.purchase_price);
-        const profitPerUnit = price - purchasePrice;
-
-        // update stok
-        await runAsync('UPDATE products SET stock = stock - ? WHERE id = ?', [quantity, productId]);
-
-        await runAsync(
-          `INSERT INTO inventory_logs (type, product_id, quantity, note)
-           VALUES (?, ?, ?, ?)`,
-          ['sell', productId, quantity, `Penjualan x${quantity} (metode: ${paymentMethod})`]
-        );
-
-        receiptItems.push({
-          productId,
-          quantity,
-          price,
-          totalPrice,
-          paymentMethod,
-          cashierName,
-          product_code: product.code ?? null,
-          product_name: product.name ?? null,
-          unit: product.unit ?? null,
-          purchase_price: purchasePrice,
-          sale_price: price,
-          profit_per_unit: profitPerUnit
-        });
-
-        subtotal += totalPrice;
-        itemsCount += quantity;
-      }
-
-      // simpan receipt header
-      const insertReceipt = await runAsync(
-        `INSERT INTO sales_receipts (date, cashier_name, payment_method, subtotal, total_items)
-         VALUES (?, ?, ?, ?, ?)`,
-        [new Date().toISOString().slice(0, 10), cashierName, paymentMethod, subtotal, itemsCount]
+      const product = await getAsync(
+        'SELECT stock, sale_price, purchase_price, code, name, unit FROM products WHERE id = ?',
+        [productId]
       );
-      const receiptId = insertReceipt.lastID;
+      if (!product) return sendError(res, `Produk tidak ditemukan: ${productId}`);
+      if (ensureNumber(product.stock) < quantity) return sendError(res, `Stok tidak cukup untuk ${product.name}`);
 
-      // simpan receipt items dan sales_transactions
-      for (const ri of receiptItems) {
-        await runAsync(
-          `INSERT INTO sales_receipt_items (
-              receipt_id,
-              product_id,
-              quantity,
-              price,
-              total_price,
-              product_code,
-              product_name,
-              unit,
-              purchase_price,
-              sale_price,
-              profit_per_unit
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            receiptId,
-            ri.productId,
-            ri.quantity,
-            ri.price,
-            ri.totalPrice,
-            ri.product_code,
-            ri.product_name,
-            ri.unit,
-            ri.purchase_price,
-            ri.sale_price,
-            ri.profit_per_unit
-          ]
-        );
+      const price = ensureNumber(product.sale_price);
+      const totalPrice = price * quantity;
+      const purchasePrice = ensureNumber(product.purchase_price);
+      const profitPerUnit = price - purchasePrice;
 
-        await runAsync(
-          `INSERT INTO sales_transactions (
-              date,
-              cashier_name,
-              product_id,
-              quantity,
-              price,
-              total_price,
-              payment_method,
-              product_code,
-              product_name,
-              unit,
-              purchase_price,
-              sale_price,
-              profit_per_unit
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            new Date().toISOString().slice(0, 10),
-            ri.cashierName,
-            ri.productId,
-            ri.quantity,
-            ri.price,
-            ri.totalPrice,
-            ri.paymentMethod,
-            ri.product_code,
-            ri.product_name,
-            ri.unit,
-            ri.purchase_price,
-            ri.sale_price,
-            ri.profit_per_unit
-          ]
-        );
-      }
+      receiptItems.push({
+        productId,
+        quantity,
+        price,
+        totalPrice,
+        paymentMethod,
+        cashierName,
+        product_code: product.code ?? null,
+        product_name: product.name ?? null,
+        unit: product.unit ?? null,
+        purchase_price: purchasePrice,
+        sale_price: price,
+        profit_per_unit: profitPerUnit
+      });
 
-      await runAsync('COMMIT');
-      return res.json({ success: true, receiptId, message: 'Checkout tersimpan.' });
-    } catch (e) {
-      try { await runAsync('ROLLBACK'); } catch {}
-      return sendError(res, e?.message ? `Gagal menyimpan checkout: ${e.message}` : 'Gagal menyimpan checkout.', 500);
+      subtotal += totalPrice;
+      itemsCount += quantity;
     }
+
+    // Eksekusi semua perubahan menggunakan db.batch() (atomic - kompatibel Turso)
+    const today = new Date().toISOString().slice(0, 10);
+
+    // 1. Insert receipt header dulu untuk dapat receiptId
+    const insertReceipt = await runAsync(
+      `INSERT INTO sales_receipts (date, cashier_name, payment_method, subtotal, total_items) VALUES (?, ?, ?, ?, ?)`,
+      [today, cashierName, paymentMethod, subtotal, itemsCount]
+    );
+    const receiptId = insertReceipt.lastID;
+
+    // 2. Batch semua write operations (update stok, insert log, insert items & transaksi)
+    const batchStatements = [];
+    for (const ri of receiptItems) {
+      batchStatements.push({
+        sql: 'UPDATE products SET stock = stock - ? WHERE id = ?',
+        args: [ri.quantity, ri.productId]
+      });
+      batchStatements.push({
+        sql: `INSERT INTO inventory_logs (type, product_id, quantity, note) VALUES (?, ?, ?, ?)`,
+        args: ['sell', ri.productId, ri.quantity, `Penjualan x${ri.quantity} (metode: ${paymentMethod})`]
+      });
+      batchStatements.push({
+        sql: `INSERT INTO sales_receipt_items (receipt_id, product_id, quantity, price, total_price, product_code, product_name, unit, purchase_price, sale_price, profit_per_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [receiptId, ri.productId, ri.quantity, ri.price, ri.totalPrice, ri.product_code, ri.product_name, ri.unit, ri.purchase_price, ri.sale_price, ri.profit_per_unit]
+      });
+      batchStatements.push({
+        sql: `INSERT INTO sales_transactions (date, cashier_name, product_id, quantity, price, total_price, payment_method, product_code, product_name, unit, purchase_price, sale_price, profit_per_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [today, ri.cashierName, ri.productId, ri.quantity, ri.price, ri.totalPrice, ri.paymentMethod, ri.product_code, ri.product_name, ri.unit, ri.purchase_price, ri.sale_price, ri.profit_per_unit]
+      });
+    }
+
+    await db.batch(batchStatements, 'write');
+
+    return res.json({ success: true, receiptId, message: 'Checkout tersimpan.' });
   } catch (e) {
     console.error(e);
-    return sendError(res, 'Gagal memproses checkout.', 500);
+    return sendError(res, e?.message ? `Gagal menyimpan checkout: ${e.message}` : 'Gagal menyimpan checkout.', 500);
   }
 });
 
